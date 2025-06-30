@@ -1,5 +1,4 @@
 import { Chess } from 'chess.js';
-import { BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { auth } from './firebase';
 import { fromRef } from 'rxfire/firestore';
@@ -7,10 +6,9 @@ import { getDoc, updateDoc } from 'firebase/firestore';
 
 let gameRef;
 let member;
-
 const chess = new Chess();
+export let gameSubject;  // đoạn này là biến toàn cục
 
-export let gameSubject;
 
 export async function initGame(gameRefFb) {
   const { currentUser } = auth;
@@ -26,7 +24,7 @@ export async function initGame(gameRefFb) {
     }
 
     const creator = initialGame.members.find(m => m.creator === true);
-
+// Nếu phòng đang chờ và mình không phải creator, thêm mình vào phòng
     if (initialGame.status === 'waiting' && creator.uid !== currentUser.uid) {
       const currUser = {
         uid: currentUser.uid,
@@ -40,11 +38,12 @@ export async function initGame(gameRefFb) {
         status: 'ready'
       });
     } else if (!initialGame.members.map(m => m.uid).includes(currentUser.uid)) {
+      // Nếu user không thuộc phòng này, trả về 'intruder'
       return 'intruder';
     }
 
     chess.reset();
-
+// Lắng nghe realtime dữ liệu phòng chơi từ Firestore
     gameSubject = fromRef(gameRefFb).pipe(
       map(snapshot => {
         const game = snapshot.data();
@@ -71,25 +70,16 @@ export async function initGame(gameRefFb) {
         };
       })
     );
-  } else {
-    gameRef = null;
-    gameSubject = new BehaviorSubject();
-    const savedGame = localStorage.getItem('savedGame');
-    if (savedGame) {
-      chess.load(savedGame);
-    }
-    updateGame();
   }
+ 
 }
 
 export async function resetGame() {
   if (gameRef) {
     await updateGame(null, true);
     chess.reset();
-  } else {
-    chess.reset();
-    updateGame();
   }
+  
 }
 
 export function handleMove(from, to) {
@@ -125,14 +115,8 @@ export function move(from, to, promotion) {
           alert("Nước đi không hợp lệ!");
         }
       }
-    } else {
-      const legalMove = chess.move(tempMove);
-      if (legalMove) {
-        updateGame();
-      } else {
-        alert("Nước đi không hợp lệ!");
-      }
     }
+    
   } catch (error) {
     console.error("Lỗi khi di chuyển:", error);
     alert("Lỗi nước đi: " + error.message);
@@ -153,18 +137,8 @@ async function updateGame(pendingPromotion, reset) {
     }
 
     await updateDoc(gameRef, updatedData);
-  } else {
-    const newGame = {
-      board: chess.board(),
-      pendingPromotion,
-      isGameOver,
-      position: chess.turn(),
-      result: isGameOver ? getGameResult() : null
-    };
-
-    localStorage.setItem('savedGame', chess.fen());
-    gameSubject.next(newGame);
   }
+
 }
 
 function getGameResult() {
