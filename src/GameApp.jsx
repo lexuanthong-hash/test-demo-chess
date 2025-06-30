@@ -24,7 +24,7 @@ function GameApp() {
     let subscribe;
 
     const initialize = async () => {
-    const gameRef = id !== 'local' ? doc(db, 'games', id) : null;
+    const gameRef = doc(db, 'games', id);;
       const res = await initGame(gameRef);
       setInitResult(res);
       setLoading(false);
@@ -63,9 +63,7 @@ function GameApp() {
     navigate('/');
   };
 
-  if (loading) return <p>Loading ...</p>;
-  if (initResult === 'notfound') return <p>Game Not Found</p>;
-  if (initResult === 'intruder') return <p>The game is already full</p>;
+ 
 
   return (
     <div className="app-container">

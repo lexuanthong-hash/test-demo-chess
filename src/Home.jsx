@@ -41,11 +41,7 @@ export default function Home() {
     return (
         <>
             <div className="columns home">
-                <div className="column has-background-primary home-columns">
-                    <button className="button is-link" onClick={startLocalGame}>
-                        Play Locally
-                    </button>
-                </div>
+                
                 <div className="column has-background-link home-columns">
                     <button className="button is-primary"
                         onClick={handlePlayOnline}>
